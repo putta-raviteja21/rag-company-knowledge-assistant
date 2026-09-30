@@ -1,0 +1,12 @@
+.agents/
+venv/
+__pycache__/
+*.pyc
+
+chroma_db/
+
+data/
+
+history/chat_history.json
+
+.env
