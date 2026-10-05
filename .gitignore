@@ -9,4 +9,4 @@ data/
 
 history/chat_history.json
 
-.env
+.envvenv/
