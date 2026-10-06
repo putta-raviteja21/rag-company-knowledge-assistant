@@ -1,41 +1,43 @@
 import os
-from huggingface_hub import InferenceClient
+import time
+
+from google import genai
+from google.genai.errors import ServerError
 
 
-client = InferenceClient(
-    api_key=os.environ["HF_TOKEN"],
-    provider="auto"
+# Get Gemini API key from environment variable
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise ValueError(
+        "GEMINI_API_KEY environment variable is not set."
+    )
+
+
+# Create Gemini client
+client = genai.Client(
+    api_key=GEMINI_API_KEY
 )
 
 
-def generate_answer(question, documents):
-
-    if not documents:
-        return (
-            "I could not find the answer "
-            "in the provided documents."
-        )
-
-    context = "\n\n".join(documents)
+def generate_answer(question, context):
+    """
+    Generate an answer using the retrieved RAG context.
+    """
 
     prompt = f"""
-You are a company knowledge assistant.
+You are an AI Company Knowledge Assistant.
 
-Answer the user's question using ONLY
-the information provided in the context.
+Answer the user's question using ONLY the information
+provided in the context below.
 
 Rules:
-
-- Do not use outside knowledge.
 - Do not invent information.
-- Do not guess.
-- If the answer is not present in the context,
-  say exactly:
-
-"I could not find the answer in the provided documents."
-
-- Give a short and clear answer.
-- Do not show internal reasoning or thinking.
+- Do not use outside knowledge.
+- If the answer cannot be found in the context, say:
+  "I could not find this information in the provided company documents."
+- Give a clear and concise answer.
+- Use the company document information as the source of truth.
 
 Context:
 {context}
@@ -46,16 +48,36 @@ Question:
 Answer:
 """
 
-    response = client.chat.completions.create(
-        model="Qwen/Qwen3-4B-Thinking-2507",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.1,
-        max_tokens=150
-    )
+    # Retry temporary Gemini server errors
+    max_retries = 3
 
-    return response.choices[0].message.content
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt
+            )
+
+            return response.text
+
+        except ServerError as error:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+
+                print(
+                    f"Gemini server temporarily unavailable. "
+                    f"Retrying in {wait_time} seconds..."
+                )
+
+                time.sleep(wait_time)
+
+            else:
+                return (
+                    "Gemini is temporarily unavailable. "
+                    "Please try asking your question again."
+                )
+
+        except Exception as error:
+            return (
+                f"An error occurred while generating the answer: {error}"
+            )

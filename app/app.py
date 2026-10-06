@@ -136,7 +136,7 @@ with st.sidebar:
     st.header("Project Information")
 
     st.write(
-        "LLM: Qwen 3:4B"
+        "LLM: Gemini 3.8 Flash"
     )
 
     st.write(
@@ -419,7 +419,7 @@ if question:
     else:
 
         with st.spinner(
-            "Qwen is generating the answer..."
+            "Gemini is generating the answer..."
         ):
 
             answer = generate_answer(
@@ -504,6 +504,7 @@ if question:
                 for item in results
 
             ]
+
         }
 
 

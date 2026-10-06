@@ -3,3 +3,4 @@ pymupdf
 sentence-transformers
 chromadb
 ollama
+google-genai==2.28.0
